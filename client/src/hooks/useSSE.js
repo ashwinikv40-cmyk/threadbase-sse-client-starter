@@ -1,68 +1,28 @@
-
 import { useEffect } from "react";
 import { useAuth } from "../auth/AuthContext";
-import { fetchEventSource } from "@microsoft/fetch-event-source";
 
 export default function useSSE(url, onMessage) {
-  const { user, token } = useAuth();
+  const { user } = useAuth();
 
   useEffect(() => {
-    if (!user || !token) return;
-``  
-    const controller = new AbortController();
+    if (!user) return;
 
-    class FatalSSEError extends Error {}
-
-    fetchEventSource(url, {
-      method: "GET",
-
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-
-      signal: controller.signal,
-      openWhenHidden: true,
-
-      async onopen(response) {
-        if (!response.ok) {
-          throw new FatalSSEError(
-            `SSE connection failed: ${response.status}`
-          );
-        }
-
-        if (
-          !response.headers
-            .get("content-type")
-            ?.includes("text/event-stream")
-        ) {
-          throw new FatalSSEError("Invalid SSE response");
-        }
-
-        console.log("SSE connection established!");
-      },
-
-      onmessage(event) {
-        try {
-          const data = JSON.parse(event.data);
-          onMessage(data);
-        } catch (error) {
-          console.error("SSE parsing error:", error);
-        }
-      },
-
-      onerror(error) {
-        console.error("SSE connection error:", error);
-
-        if (error instanceof FatalSSEError) {
-          throw error;
-        }
-      },
-    }).catch((error) => {
-      if (error.name !== "AbortError") {
-        console.error("SSE stopped:", error);
-      }
+    const source = new EventSource(url, {
+      withCredentials: true,
     });
 
-    return () => controller.abort();
-  }, [url, user, token, onMessage]);
+    source.onmessage = (event) => {
+      try {
+        onMessage(JSON.parse(event.data));
+      } catch (error) {
+        console.error("Error parsing SSE message:", error);
+      }
+    };
+
+    source.onerror = (error) => {
+      console.error("SSE connection error:", error);
+    };
+
+    return () => source.close();
+  }, [url, user, onMessage]);
 }

@@ -1,4 +1,3 @@
-
 import { useCallback } from "react";
 import NavBar from "./NavBar.jsx";
 import useSSE from "../hooks/useSSE.js";
@@ -9,8 +8,6 @@ export default function AppShell({ children }) {
 
   const handleMessage = useCallback(
     (data) => {
-      if (data.type === "connected") return;
-
       dispatch({
         type: "ADD_NOTIFICATION",
         payload: data,
