@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useState } from "react";
 import apiClient from "../services/apiClient.js";
 
@@ -8,22 +9,33 @@ export function AuthProvider({ children }) {
   const [token, setToken] = useState(null);
 
   async function login(email, password) {
-    const { data } = await apiClient.post("/auth/login", { email, password });
+    const { data } = await apiClient.post("/auth/login", {
+      email,
+      password,
+    });
+
     setToken(data.accessToken);
     setUser(data.user);
-    // store token so the apiClient interceptor can attach it
-    apiClient.defaults.headers.common["Authorization"] = `Bearer ${data.accessToken}`;
+
+    // Attach JWT token to Axios requests
+    apiClient.defaults.headers.common["Authorization"] =
+      `Bearer ${data.accessToken}`;
+
     return data;
   }
 
   function logout() {
     setUser(null);
     setToken(null);
+
+    // Remove authorization header
     delete apiClient.defaults.headers.common["Authorization"];
   }
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout }}>
+    <AuthContext.Provider
+      value={{ user, token, login, logout }}
+    >
       {children}
     </AuthContext.Provider>
   );
